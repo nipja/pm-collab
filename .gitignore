@@ -1,0 +1,13 @@
+# Personal, per-project Claude notes (do not share)
+CLAUDE.local.md
+
+# Secrets — never commit
+.env
+.env.*
+*.token
+secrets/
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json

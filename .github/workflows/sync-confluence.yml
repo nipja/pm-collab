@@ -1,0 +1,37 @@
+# Publishes markdown docs to Confluence when changes land on main.
+#
+# REQUIRED GitHub Actions secrets (Settings → Secrets and variables → Actions):
+#   CONFLUENCE_USER   — your Atlassian account email
+#   CONFLUENCE_TOKEN  — an Atlassian API token (id.atlassian.com → API tokens)
+# REQUIRED to edit below for your space:
+#   confluence-base-url, space-key, parent-page-id
+#
+# Truth lives in Git. This job overwrites the mirrored Confluence pages — never edit
+# those pages by hand.
+
+name: Sync docs to Confluence
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "knowledge-base/**"
+      - "prds/**"
+      - "roadmap.md"
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish to Confluence
+        uses: Bhacaz/docs-as-code-confluence@v3
+        with:
+          folder: .
+          username: ${{ secrets.CONFLUENCE_USER }}
+          password: ${{ secrets.CONFLUENCE_TOKEN }}
+          confluence-base-url: https://YOUR-DOMAIN.atlassian.net/wiki
+          space-key: "YOUR_SPACE_KEY"
+          parent-page-id: "YOUR_PARENT_PAGE_ID"
