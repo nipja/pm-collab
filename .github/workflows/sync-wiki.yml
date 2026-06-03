@@ -5,10 +5,10 @@
 # and create at least one wiki page manually first (GitHub won't auto-init the wiki repo).
 #
 # What gets synced:
-#   knowledge-base/**  →  wiki/knowledge-base/
-#   research/**        →  wiki/research/
-#   notes/**           →  wiki/notes/
-#   prds/**            →  wiki/prds/  (approved specs only — no briefs, no template)
+#   knowledge-base/**  →  wiki/knowledge-base/   (permanent reference)
+#   research/**        →  wiki/research/          (deep sourced notes)
+#   notes/**           →  wiki/notes/             (sprint synthesis notes)
+#   prds/**            →  wiki/prds/              (approved specs only)
 #   roadmap.md         →  wiki/Roadmap.md
 #
 # A Home.md index is generated automatically on every sync.
@@ -71,7 +71,7 @@ jobs:
           # Clear previous synced content, preserve .git
           find . -mindepth 1 -not -path './.git*' -delete
 
-          # knowledge-base → reference pages (drop internal template)
+          # knowledge-base → permanent reference (drop internal template)
           mkdir -p knowledge-base
           cp ../knowledge-base/*.md knowledge-base/ 2>/dev/null || true
           rm -f knowledge-base/_NOTE_TEMPLATE.md
@@ -108,16 +108,17 @@ jobs:
             echo "# pm-collab — IQ Product Team Docs"
             echo ""
             echo "> Read-only mirror of the [pm-collab](https://github.com/${REPO}) repo."
-            echo "> **Never edit these pages directly** — all changes are overwritten on the next push to main."
+            echo "> **Never edit these pages directly** — changes are overwritten on every push to main."
             echo "> Last synced: ${TIMESTAMP} ([\`${SHA:0:7}\`](https://github.com/${REPO}/commit/${SHA}))"
             echo ""
             echo "---"
             echo ""
             echo "## 📌 Reference"
+            echo "_Permanent context loaded into every AI session._"
             echo ""
             echo "| Doc | What it covers |"
             echo "|-----|----------------|"
-            echo "| [Product Context](knowledge-base/product-context) | What IQ is, who it's for, current stage, priorities |"
+            echo "| [Product Context](knowledge-base/product-context) | What IQ is, who it's for, current stage, strategic priorities |"
             echo "| [Glossary](knowledge-base/glossary) | Canonical terms and what to avoid |"
             echo "| [Voice & Style](knowledge-base/voice-and-style) | How our docs should read |"
             echo "| [Roadmap](Roadmap) | Now / Next / Later |"
@@ -125,6 +126,7 @@ jobs:
             echo "---"
             echo ""
             echo "## 🔬 Research"
+            echo "_Deep sourced notes on strategy, architecture, and economics. The RAG corpus._"
             echo ""
             for f in research/*.md; do
               [ -f "$f" ] || continue
@@ -136,6 +138,7 @@ jobs:
             echo "---"
             echo ""
             echo "## 📋 PRDs"
+            echo "_Approved product specs. One file per feature._"
             echo ""
             for f in prds/*.md; do
               [ -f "$f" ] || continue
@@ -147,6 +150,7 @@ jobs:
             echo "---"
             echo ""
             echo "## 🗒️ Sprint Notes"
+            echo "_Synthesis notes generated per feature during the product sprint chain._"
             echo ""
             for f in notes/*.md; do
               [ -f "$f" ] || continue
