@@ -36,13 +36,31 @@ jobs:
       - name: Checkout main repo
         uses: actions/checkout@v4
 
-      - name: Clone wiki repo
+      - name: Clone or init wiki repo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git clone \
-            "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.wiki.git" \
-            wiki-repo
+          WIKI_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.wiki.git"
+          if git clone "$WIKI_URL" wiki-repo 2>/dev/null; then
+            echo "Wiki repo cloned successfully."
+          else
+            echo "Wiki repo does not exist yet — initialising it."
+            mkdir wiki-repo
+            cd wiki-repo
+            git init
+            git config user.name  "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            # GitHub requires at least one commit before the remote is accepted
+            echo "# pm-collab Wiki" > Home.md
+            git add Home.md
+            git commit -m "init: create wiki"
+            git remote add origin "$WIKI_URL"
+            git push -u origin HEAD:master
+            cd ..
+            # Now clone fresh so subsequent steps work against a real remote
+            rm -rf wiki-repo
+            git clone "$WIKI_URL" wiki-repo
+          fi
 
       - name: Copy docs into wiki
         run: |
