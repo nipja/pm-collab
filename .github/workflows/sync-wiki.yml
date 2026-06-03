@@ -1,0 +1,149 @@
+# Syncs docs to the GitHub Wiki whenever changes land on main.
+#
+# No secrets needed — GITHUB_TOKEN is provided automatically by Actions.
+# The only requirement: enable the wiki on your repo (Settings → Features → Wikis)
+# and create at least one wiki page manually first (GitHub won't auto-init the wiki repo).
+#
+# What gets synced:
+#   knowledge-base/**  →  wiki/knowledge-base/
+#   research/**        →  wiki/research/
+#   notes/**           →  wiki/notes/
+#   prds/**            →  wiki/prds/  (approved specs only — no briefs, no template)
+#   roadmap.md         →  wiki/Roadmap.md
+#
+# A Home.md index is generated automatically on every sync.
+# Truth lives in Git. Never edit wiki pages directly — changes will be overwritten.
+
+name: Sync docs to GitHub Wiki
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "knowledge-base/**"
+      - "research/**"
+      - "notes/**"
+      - "prds/**"
+      - "roadmap.md"
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+
+      - name: Clone wiki repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone \
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.wiki.git" \
+            wiki-repo
+
+      - name: Copy docs into wiki
+        run: |
+          cd wiki-repo
+
+          # Clear previous synced content, preserve .git
+          find . -mindepth 1 -not -path './.git*' -delete
+
+          # knowledge-base → reference pages (drop internal template)
+          mkdir -p knowledge-base
+          cp ../knowledge-base/*.md knowledge-base/ 2>/dev/null || true
+          rm -f knowledge-base/_NOTE_TEMPLATE.md
+
+          # research → deep sourced notes
+          mkdir -p research
+          cp ../research/*.md research/ 2>/dev/null || true
+
+          # notes → sprint synthesis notes
+          mkdir -p notes
+          cp ../notes/*.md notes/ 2>/dev/null || true
+
+          # prds → approved specs only (skip _TEMPLATE.md and *.brief.md)
+          mkdir -p prds
+          for f in ../prds/*.md; do
+            base=$(basename "$f")
+            [[ "$base" == "_TEMPLATE.md" ]] && continue
+            [[ "$base" == *.brief.md ]]     && continue
+            cp "$f" prds/
+          done
+
+          # roadmap at wiki root
+          cp ../roadmap.md Roadmap.md
+
+      - name: Generate Home.md index
+        run: |
+          REPO="${{ github.repository }}"
+          SHA="${{ github.sha }}"
+          TIMESTAMP="${{ github.event.head_commit.timestamp }}"
+
+          cd wiki-repo
+
+          {
+            echo "# pm-collab — IQ Product Team Docs"
+            echo ""
+            echo "> Read-only mirror of the [pm-collab](https://github.com/${REPO}) repo."
+            echo "> **Never edit these pages directly** — all changes are overwritten on the next push to main."
+            echo "> Last synced: ${TIMESTAMP} ([\`${SHA:0:7}\`](https://github.com/${REPO}/commit/${SHA}))"
+            echo ""
+            echo "---"
+            echo ""
+            echo "## 📌 Reference"
+            echo ""
+            echo "| Doc | What it covers |"
+            echo "|-----|----------------|"
+            echo "| [Product Context](knowledge-base/product-context) | What IQ is, who it's for, current stage, priorities |"
+            echo "| [Glossary](knowledge-base/glossary) | Canonical terms and what to avoid |"
+            echo "| [Voice & Style](knowledge-base/voice-and-style) | How our docs should read |"
+            echo "| [Roadmap](Roadmap) | Now / Next / Later |"
+            echo ""
+            echo "---"
+            echo ""
+            echo "## 🔬 Research"
+            echo ""
+            for f in research/*.md; do
+              [ -f "$f" ] || continue
+              title=$(head -1 "$f" | sed 's/^#* *//')
+              slug=$(basename "$f" .md)
+              echo "- [${title}](research/${slug})"
+            done
+            echo ""
+            echo "---"
+            echo ""
+            echo "## 📋 PRDs"
+            echo ""
+            for f in prds/*.md; do
+              [ -f "$f" ] || continue
+              title=$(head -1 "$f" | sed 's/^#* *//')
+              slug=$(basename "$f" .md)
+              echo "- [${title}](prds/${slug})"
+            done
+            echo ""
+            echo "---"
+            echo ""
+            echo "## 🗒️ Sprint Notes"
+            echo ""
+            for f in notes/*.md; do
+              [ -f "$f" ] || continue
+              title=$(head -1 "$f" | sed 's/^#* *//')
+              slug=$(basename "$f" .md)
+              echo "- [${title}](notes/${slug})"
+            done
+          } > Home.md
+
+      - name: Commit and push to wiki
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd wiki-repo
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "No changes to sync." && exit 0
+          git commit -m "docs: sync from main @ ${{ github.sha }}"
+          git push

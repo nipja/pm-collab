@@ -41,5 +41,5 @@ Infoblox is a Vista Equity Partners-backed enterprise networking and security co
 
 - Roadmap: `roadmap.md`
 - Tickets: Jira — TODO: confirm project key(s) (likely IBIQ for features, IQP for platform)
-- Confluence sync: TODO — configure space key + parent page ID in `.github/workflows/sync-confluence.yml`
+- Published docs: GitHub Wiki (auto-synced on merge to main) — enable wiki in repo Settings → Features → Wikis
 - Deep context: `knowledge-base/IQ-Strategy.md`, `knowledge-base/IQ-Architecture.md`, `knowledge-base/IQ-COGS.md`

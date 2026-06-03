@@ -8,9 +8,9 @@ The problem it solves: PRDs end up scattered across Google Drive, Slack threads,
 
 ## Core design decisions
 
-### 1. Truth lives in Git, not Confluence
+### 1. Truth lives in Git, not the wiki
 
-Confluence is an auto-published **read-only mirror**. The markdown files in this repo are the canonical source. When something changes, you edit the markdown and open a PR — you never edit Confluence directly. This means:
+The **GitHub Wiki is a read-only mirror**. The markdown files in this repo are the canonical source. When something changes, you edit the markdown and open a PR — you never edit the wiki directly. A GitHub Actions workflow syncs docs automatically on every merge to `main`. This means:
 - Version history is always in Git
 - Reviews happen via pull request (engineering can comment on specs like code)
 - Everyone always reads the same thing — no "which version is current?" confusion
@@ -62,7 +62,7 @@ prds/                           prds/            scope
 | Step | Command | What it produces | Where it's saved |
 |------|---------|-----------------|-----------------|
 | **Frame** | `/frame "<idea>"` | Problem brief: sharpened problem statement, forcing questions, known facts, open questions, success metric | `prds/<feature>.brief.md` |
-| **Synthesize** | `/synthesize-research` | Sourced synthesis note pulling everything the KB knows about the topic, with contradiction callouts | `knowledge-base/<topic>.md` |
+| **Synthesize** | `/synthesize-research` | Sourced synthesis note pulling everything the KB knows about the topic, with contradiction callouts | `notes/<topic>.md` |
 | **Write spec** | `/write-spec` | Full PRD following `prds/_TEMPLATE.md`: personas, RICE, user stories, acceptance criteria (Given/When/Then), success metrics, non-goals | `prds/<feature>.md` |
 | **Review** | automatic after spec | Critique of structure, clarity, measurable metrics, and scope completeness | presented inline; you decide what to act on |
 | **Tickets** | `/ticket-from-spec prds/<feature>.md` | One epic + scoped stories with ACs and context | draft shown first; created in Jira after your confirm |
@@ -74,7 +74,7 @@ PM opens PR on GitHub
   → doc-reviewer runs as a check (optional but recommended)
   → teammates review and comment
   → merge to main
-  → GitHub Actions syncs changed files to Confluence automatically
+  → GitHub Actions syncs changed files to the GitHub Wiki automatically
   → /ticket-from-spec → Jira tickets created (with explicit confirmation)
   → engineering implements in the code repo; their PR references the Jira ticket
 ```
@@ -93,18 +93,25 @@ PM opens PR on GitHub
 
 ```
 pm-collab/
-├── knowledge-base/          # Authoritative product context — loaded into every AI session
+├── knowledge-base/          # PERMANENT REFERENCE — auto-loaded into every AI session
 │   ├── product-context.md   # What we build, who it's for, current stage, priorities
 │   ├── glossary.md          # Canonical terms + what to avoid
 │   ├── voice-and-style.md   # How our docs should read
-│   ├── IQ-Strategy.md       # Deep IQ platform strategy note (sourced)
-│   ├── IQ-Architecture.md   # Technical architecture note (sourced)
-│   ├── IQ-COGS.md           # Unit economics and cost structure (sourced)
-│   └── _NOTE_TEMPLATE.md    # Template for new KB notes
+│   └── _NOTE_TEMPLATE.md    # Template for new notes (used by research/ and notes/)
 │
-├── prds/                    # One file per feature
+├── research/                # DEEP REFERENCE — large sourced notes; the RAG corpus
+│   ├── IQ-Strategy.md       # Platform strategy (sourced, ~2000 lines)
+│   ├── IQ-Architecture.md   # Technical architecture (sourced)
+│   ├── IQ-COGS.md           # Unit economics and cost structure (sourced)
+│   └── ...                  # Add new deep-dive notes here as topics are researched
+│
+├── notes/                   # SPRINT NOTES — synthesis artifacts generated per feature
+│   └── IQ-Daily-Digest.md   # Example: generated during the daily digest sprint
+│
+├── prds/                    # OUTPUT — problem briefs and full specs, one file per feature
 │   ├── _TEMPLATE.md         # Start every PRD here
-│   └── <feature>.md         # Approved specs (merged to main = published to Confluence)
+│   ├── <feature>.brief.md   # Working brief (framing step output)
+│   └── <feature>.md         # Full PRD (merged to main = published to Confluence)
 │
 ├── roadmap.md               # Now / Next / Later — the team's deliberate source of intent
 │
@@ -149,20 +156,24 @@ pm-collab/
 
 - **One PRD per file**, named `prds/<kebab-case-feature>.md`. Always start from `prds/_TEMPLATE.md`.
 - **Never push to `main` directly.** Open a PR. Use plan mode (`/plan`) for multi-file changes so you can review the full impact before applying.
-- **Never commit secrets.** Confluence and Jira tokens live in GitHub Actions secrets only, never in files.
-- **Keep `CLAUDE.md` under ~200 lines.** Detailed standards and deep context belong in `knowledge-base/`, not in the instructions file.
-- **Never edit Confluence directly.** If something is wrong in Confluence, fix the markdown here and merge.
+- **Never commit secrets.** No tokens or credentials in files — `GITHUB_TOKEN` is injected automatically by Actions.
+- **Keep `CLAUDE.md` under ~200 lines.** Detailed standards and deep context belong in `knowledge-base/` and `research/`, not in the instructions file.
+- **Never edit the wiki directly.** If something is wrong, fix the markdown here and merge — the wiki is overwritten on the next push.
 
 ---
 
 ## Admin setup (repo owner, one-time)
 
-1. In `.github/workflows/sync-confluence.yml`, replace the three placeholder values:
-   - `confluence-base-url`: your Atlassian domain (e.g. `https://infoblox.atlassian.net/wiki`)
-   - `space-key`: your Confluence space key
-   - `parent-page-id`: the numeric ID of the parent page under which docs should appear
-2. Add two GitHub Actions secrets (Settings → Secrets and variables → Actions):
-   - `CONFLUENCE_USER` — your Atlassian account email
-   - `CONFLUENCE_TOKEN` — an Atlassian API token from id.atlassian.com
-3. Test against a throwaway Confluence page before pointing at the real space.
-4. Update `product-context.md` with the correct Jira project key(s) once confirmed.
+**Enable the wiki and bootstrap it:**
+1. Go to your repo → **Settings → Features** → check **Wikis**.
+2. Open the wiki tab and create one placeholder page manually (GitHub won't create the wiki git repo until a page exists).
+3. That's it — no secrets, no tokens. `GITHUB_TOKEN` is automatically available to Actions with `contents: write` permission.
+
+**First sync:**
+Push any change to `main` touching `knowledge-base/`, `research/`, `notes/`, `prds/`, or `roadmap.md` and the workflow will populate the wiki automatically with a generated `Home.md` index.
+
+**What the wiki URL looks like:**
+`https://github.com/<org>/<repo>/wiki`
+
+**Jira:**
+Update `knowledge-base/product-context.md` with the correct Jira project key(s) once confirmed.

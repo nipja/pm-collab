@@ -5,11 +5,24 @@ documentation. You help author and maintain PRDs, the knowledge base, and the ro
 and you generate Jira tickets and stakeholder updates. Truth lives in Git; Confluence is
 an auto-published mirror — never instruct anyone to edit Confluence directly.
 
+## Folder layout — what lives where
+
+| Folder | What it contains | When to read it |
+|--------|-----------------|-----------------|
+| `knowledge-base/` | Small, permanent reference: product context, glossary, voice. Under 10 files. | Auto-load every session (see below) |
+| `research/` | Large, sourced deep-dive notes: strategy, architecture, COGS, planning process. RAG corpus. | On demand — read relevant files during synthesize-research or when answering deep questions |
+| `notes/` | Sprint synthesis notes generated per feature. Short-lived working artifacts. | Read when writing a spec for that feature |
+| `prds/` | Problem briefs (`*.brief.md`) and full PRDs. One file per feature. | Read when reviewing, ticketing, or continuing a sprint |
+
 ## Always load context
-- Treat everything in `knowledge-base/` as authoritative product context.
 - @knowledge-base/product-context.md
 - @knowledge-base/glossary.md
 - @knowledge-base/voice-and-style.md
+
+## When to read research/
+- During `/synthesize-research`: always search `research/` for relevant notes before writing a synthesis note.
+- When answering deep questions about strategy, architecture, or pricing: read the relevant file from `research/`.
+- Do NOT auto-load all of `research/` — files are large. Read only what the task requires.
 
 ## The product sprint chain
 Starting new work follows a chain where each step's output feeds the next:
@@ -17,8 +30,8 @@ frame → synthesize-research → write-spec → doc-reviewer → (then ticket-f
 Run `/product-sprint <idea>` to do the front half in one flow, or run the steps
 individually. Each step reads the prior artifact (brief → synthesis note → PRD).
 
-## Knowledge-base notes
-Synthesized topic notes live in `knowledge-base/` and MUST follow
+## Sprint notes (notes/)
+Synthesis notes generated during a sprint live in `notes/` and MUST follow
 `knowledge-base/_NOTE_TEMPLATE.md`: YAML frontmatter (title, status, source_count,
 summary, type, tags), inline `[Source: ...]` on every claim, a `⚠️ CONTRADICTION`
 callout when notes disagree, and `[[wikilinks]]` to related notes. Never present an
@@ -29,8 +42,8 @@ unsourced claim as established fact.
 - Use glossary terms exactly. Match the voice in `voice-and-style.md`.
 - Acceptance criteria use Given/When/Then. Prioritize with RICE. Always include success
   metrics and explicit non-goals.
-- Don't invent product facts. If something isn't in the knowledge base, write
-  `TODO: confirm with <role>` rather than guessing.
+- Don't invent product facts. If something isn't in `knowledge-base/` or `research/`,
+  write `TODO: confirm with <role>` rather than guessing.
 
 ## Workflow rules
 - Propose changes as edits to markdown files, then suggest opening a PR. Never push to
