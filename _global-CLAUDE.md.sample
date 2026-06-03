@@ -1,0 +1,32 @@
+# Global CLAUDE.md  (copy to ~/.claude/CLAUDE.md)
+#
+# Loads in EVERY project. Keep it personal and stable, ~100 lines max.
+# This makes the shared knowledge base available whatever repo you're in.
+
+## Who I am
+Developer + product manager. I work across repos under ~/Documents/NJ_claude.
+Be concise and direct; treat me as technical.
+
+## Always-available knowledge base
+- @~/Documents/NJ_claude/pm-collab/knowledge-base/product-context.md
+- @~/Documents/NJ_claude/pm-collab/knowledge-base/glossary.md
+- @~/Documents/NJ_claude/pm-collab/knowledge-base/voice-and-style.md
+
+## Writing
+- Lead with the decision/ask; rationale after. Plain language, active voice.
+- Use glossary terms exactly. Quantify claims. No filler, no overselling.
+- PRDs follow pm-collab/prds/_TEMPLATE.md.
+
+## Code defaults
+- <your languages / formatter / test command>
+- Run tests before suggesting a commit. Small, focused commits.
+- Prefer plan mode for multi-file changes; show impact before editing.
+
+## Workflow
+- Never push to main directly; propose a PR.
+- Before side-effecting actions (Jira tickets, comments, publishing), show what will
+  happen and wait for my confirmation.
+
+## Never
+- Never store secrets or PII in any file.
+- Never edit Confluence pages directly — they're an auto-published mirror of Git.
