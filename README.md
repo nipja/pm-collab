@@ -1,106 +1,168 @@
-# pm-collab — the product team's AI-native workspace
+# pm-collab — the IQ product team's shared workspace
 
-**This repo is the heart of how we work.** It's the single source of truth for product
-documentation *and* the standardized toolkit — templates, skills, agents, and
-integrations — that every PM and engineer shares. Clone it once, and your AI assistant
-(Claude Code in the terminal, or Claude in VS Code) behaves identically to everyone
-else's: same templates, same voice, same connections to GitHub, Jira, and Confluence.
+This repo is the single source of truth for Infoblox IQ product documentation. It is also the standardized toolkit — templates, skills, agents, and integrations — that every PM on the team shares.
 
-> **The idea:** stop scattering PRDs across Drive, Slack, and people's heads. Docs are
-> authored here in markdown, reviewed via pull request, and auto-published to Confluence
-> for everyone to read. Tickets are generated into Jira from those docs. One repo, one
-> workflow, one set of standards.
+The problem it solves: PRDs end up scattered across Google Drive, Slack threads, and people's heads. By the time engineering picks up a ticket, the original context is gone and the acceptance criteria are vague. This repo fixes that by making docs the artifact that everything else is generated from — not an afterthought.
 
 ---
 
-## The operating model
+## Core design decisions
 
-```
-   author in Claude             review            auto-publish        link out
-  ┌────────────────────┐    ┌──────────────┐    ┌────────────┐    ┌──────────┐
-  │ /write-spec → prds/ │ ─► │ Pull Request │ ─► │ Confluence │    │   Jira   │
-  │ edit knowledge-base │    │ (eng review) │    │  (mirror)  │    │ (tickets)│
-  └────────────────────┘    └──────────────┘    └────────────┘    └──────────┘
-                                   │                                    ▲
-                                   └── merge to main triggers sync ─────┘
-                                       /ticket-from-spec → Jira via MCP
-```
+### 1. Truth lives in Git, not Confluence
 
-1. **Author** — `/write-spec <feature>` writes a structured PRD into `prds/`, using our
-   shared context and voice automatically.
-2. **Review** — open a PR. Engineering reviews the spec like code. The `doc-reviewer`
-   agent pre-checks structure and clarity.
-3. **Publish** — merge to `main`; the docs auto-sync to our Confluence space. No copy-paste.
-4. **Plan** — `/ticket-from-spec prds/<feature>.md` drafts Jira tickets (with context +
-   acceptance criteria) and creates them via the Atlassian integration — after you confirm.
-5. **Build** — engineers implement in the relevant code repo; that PR updates the Jira ticket.
+Confluence is an auto-published **read-only mirror**. The markdown files in this repo are the canonical source. When something changes, you edit the markdown and open a PR — you never edit Confluence directly. This means:
+- Version history is always in Git
+- Reviews happen via pull request (engineering can comment on specs like code)
+- Everyone always reads the same thing — no "which version is current?" confusion
 
-**Truth lives in Git. Confluence is a read mirror — never edit it directly.**
+### 2. Shared context loads into every AI session automatically
 
-### Starting new work: the product sprint chain
+`CLAUDE.md` tells Claude to always load `knowledge-base/product-context.md`, `glossary.md`, and `voice-and-style.md` at the start of every session. This means:
+- Every teammate's Claude has the same grounding in who the product is for, what stage we're at, and what terms we use
+- You don't have to re-explain the product every time you start a new conversation
+- The knowledge base compounds: each new synthesis note makes the next spec better
 
-Each step hands an artifact to the next — like a sprint, not a pile of commands:
+### 3. The knowledge base is a living asset, not a wiki
 
-```
-/frame → /synthesize-research → /write-spec → doc-reviewer → /ticket-from-spec
-brief  →  sourced KB note     →  PRD draft  →  critique    →  Jira issues
-```
+Notes in `knowledge-base/` follow a strict template (YAML frontmatter, inline `[Source: ...]` on every claim, `⚠️ CONTRADICTION` callouts, `[[wikilinks]]` between notes). The discipline matters: sourced claims prevent the AI from presenting guesses as facts, and contradictions stay visible rather than silently overriding each other.
 
-Run `/product-sprint "<idea>"` to drive frame → synthesize → spec → review in one flow
-(it stops only for your judgment calls), or run any step on its own. The synthesis step
-reads the `knowledge-base/` notes and writes its own sourced note back into it, so the
-base compounds over time.
+### 4. Docs before tickets
+
+Tickets are generated *from* PRDs, not written from scratch in Jira. This means acceptance criteria, context, and non-goals travel with the ticket from the start — engineers don't have to chase the PM to understand scope. The `/ticket-from-spec` skill handles the translation; it always shows you the full draft and waits for confirmation before creating anything in Jira.
+
+### 5. Onboarding is: clone + authenticate
+
+All skills, agents, settings, and MCP connections are committed. There is no per-person configuration. A new teammate clones the repo, authenticates with GitHub and Atlassian, and their Claude behaves identically to everyone else's.
 
 ---
 
-## What's standardized here (why this repo is the hub)
+## How collaboration works — the full flow
 
-| Folder | What the team gets |
-|--------|--------------------|
-| `knowledge-base/` | Product context, glossary, and voice — loaded into every AI session |
-| `prds/_TEMPLATE.md` | The PRD format everyone uses (RICE, Given/When/Then, metrics, non-goals) |
-| `roadmap.md` | Now / Next / Later roadmap |
-| `.claude/skills/` | Shared slash commands: `/product-sprint`, `/frame`, `/synthesize-research`, `/write-spec`, `/ticket-from-spec`, `/stakeholder-update`, `/roadmap-update` |
-| `.claude/agents/` | Shared subagents: `doc-reviewer` (read-only PRD review) |
-| `.claude/settings.json` | Permission guardrails (blocks secrets, requires confirm on risky actions) |
-| `.mcp.json` | GitHub + Atlassian (Jira/Confluence) connections — teammates just authenticate |
-| `CLAUDE.md` | Repo-level instructions the AI loads automatically here |
+### Starting new work
 
-Because all of this is committed, **onboarding a teammate is: clone + authenticate.**
-No per-person configuration.
+Every new feature or initiative follows the same chain. Each step produces an artifact that feeds the next:
+
+```
+FRAME         SYNTHESIZE        SPEC             REVIEW           TICKETS
+─────────     ──────────────    ─────────────    ─────────────    ─────────────
+/frame        /synthesize-      /write-spec      doc-reviewer     /ticket-from-
+"<idea>"  →   research      →   (reads brief  →  agent        →   spec
+              (reads KB +       + KB note)       critiques        prds/<f>.md
+brief.md       brief, writes                     structure,
+saved to       new KB note)     PRD saved to     metrics,
+prds/                           prds/            scope
+```
+
+**Run the whole chain at once:** `/product-sprint "<idea>"` drives frame → synthesize → spec → review in one flow, stopping only at the two judgment-call moments (after framing to get your answers, and after review to get your taste decisions).
+
+**Run steps individually** when you already have a brief or want to re-run just the spec.
+
+### What each step does
+
+| Step | Command | What it produces | Where it's saved |
+|------|---------|-----------------|-----------------|
+| **Frame** | `/frame "<idea>"` | Problem brief: sharpened problem statement, forcing questions, known facts, open questions, success metric | `prds/<feature>.brief.md` |
+| **Synthesize** | `/synthesize-research` | Sourced synthesis note pulling everything the KB knows about the topic, with contradiction callouts | `knowledge-base/<topic>.md` |
+| **Write spec** | `/write-spec` | Full PRD following `prds/_TEMPLATE.md`: personas, RICE, user stories, acceptance criteria (Given/When/Then), success metrics, non-goals | `prds/<feature>.md` |
+| **Review** | automatic after spec | Critique of structure, clarity, measurable metrics, and scope completeness | presented inline; you decide what to act on |
+| **Tickets** | `/ticket-from-spec prds/<feature>.md` | One epic + scoped stories with ACs and context | draft shown first; created in Jira after your confirm |
+
+### After the spec is approved
+
+```
+PM opens PR on GitHub
+  → doc-reviewer runs as a check (optional but recommended)
+  → teammates review and comment
+  → merge to main
+  → GitHub Actions syncs changed files to Confluence automatically
+  → /ticket-from-spec → Jira tickets created (with explicit confirmation)
+  → engineering implements in the code repo; their PR references the Jira ticket
+```
+
+### Other day-to-day commands
+
+| Command | When to use |
+|---------|------------|
+| `/roadmap-update` | After PRDs are approved or work ships — keeps `roadmap.md` current |
+| `/stakeholder-update` | Drafts a TL;DR → RAG status → risks → asks update for leadership or partners |
+| `/frame` alone | When an idea feels vague and you want to pressure-test it before writing a spec |
+
+---
+
+## What's in this repo
+
+```
+pm-collab/
+├── knowledge-base/          # Authoritative product context — loaded into every AI session
+│   ├── product-context.md   # What we build, who it's for, current stage, priorities
+│   ├── glossary.md          # Canonical terms + what to avoid
+│   ├── voice-and-style.md   # How our docs should read
+│   ├── IQ-Strategy.md       # Deep IQ platform strategy note (sourced)
+│   ├── IQ-Architecture.md   # Technical architecture note (sourced)
+│   ├── IQ-COGS.md           # Unit economics and cost structure (sourced)
+│   └── _NOTE_TEMPLATE.md    # Template for new KB notes
+│
+├── prds/                    # One file per feature
+│   ├── _TEMPLATE.md         # Start every PRD here
+│   └── <feature>.md         # Approved specs (merged to main = published to Confluence)
+│
+├── roadmap.md               # Now / Next / Later — the team's deliberate source of intent
+│
+├── .claude/
+│   ├── skills/              # Slash commands every teammate shares
+│   │   ├── product-sprint/  # Full frame→synthesize→spec→review chain
+│   │   ├── frame/           # Problem framing only
+│   │   ├── synthesize-research/
+│   │   ├── write-spec/
+│   │   ├── ticket-from-spec/
+│   │   ├── roadmap-update/
+│   │   └── stakeholder-update/
+│   ├── agents/
+│   │   └── doc-reviewer.md  # Read-only PRD review agent
+│   └── settings.json        # Permission guardrails (blocks secrets, confirm on side effects)
+│
+├── .mcp.json                # MCP connections: GitHub + Atlassian (Jira + Confluence)
+├── CLAUDE.md                # Repo-level AI instructions — auto-loaded every session
+└── .github/workflows/
+    └── sync-confluence.yml  # Auto-publishes docs to Confluence on merge to main
+```
 
 ---
 
 ## Getting started (each team member, ~10 min)
 
-1. Install Claude Code (`claude --version`, need ≥ 2.1.59) **or** the Claude extension in VS Code.
-2. Install GitHub CLI and sign in: `brew install gh && gh auth login`.
-3. Clone and enter the repo:
+1. **Install Claude Code** — `claude --version` (need ≥ 2.1.59) or the Claude extension in VS Code.
+2. **Install GitHub CLI** — `brew install gh && gh auth login`.
+3. **Clone the repo:**
    ```
    git clone https://github.com/nipja/pm-collab.git
    cd pm-collab
    ```
-4. Start a session (`claude`) and run `/mcp` — complete the browser OAuth for **Atlassian**
-   and **GitHub**. (The connections are pre-configured in `.mcp.json`; you only log in.)
-5. Run `/memory` to confirm `CLAUDE.md` and the knowledge base are loading. You're ready.
+4. **Authenticate integrations** — run `claude`, then `/mcp`. Complete the browser OAuth for **Atlassian** (Jira + Confluence) and **GitHub**. The connections are pre-wired in `.mcp.json`; you just log in.
+5. **Verify** — run `/memory` and confirm that `CLAUDE.md` and the knowledge base notes are loading. You're ready.
 
-Optional but recommended: copy `_global-CLAUDE.md.sample` to `~/.claude/CLAUDE.md` and
-fill in your personal defaults — it makes the knowledge base available in *every* repo
-you work in, not just this one.
+**Optional but recommended:** copy `_global-CLAUDE.md.sample` to `~/.claude/CLAUDE.md` and fill in your personal role and preferences. This makes the product context available in every repo you work in, not just this one.
 
 ---
 
 ## Conventions
 
-- One PRD per file, `prds/<kebab-case-feature>.md`. Start from `_TEMPLATE.md`.
-- Keep `CLAUDE.md` under ~200 lines; detailed standards go in `knowledge-base/`.
-- Never commit secrets. Confluence/Jira tokens live in **GitHub Actions secrets** only.
-- Don't push to `main` directly — open a PR. Use plan mode for multi-file changes.
+- **One PRD per file**, named `prds/<kebab-case-feature>.md`. Always start from `prds/_TEMPLATE.md`.
+- **Never push to `main` directly.** Open a PR. Use plan mode (`/plan`) for multi-file changes so you can review the full impact before applying.
+- **Never commit secrets.** Confluence and Jira tokens live in GitHub Actions secrets only, never in files.
+- **Keep `CLAUDE.md` under ~200 lines.** Detailed standards and deep context belong in `knowledge-base/`, not in the instructions file.
+- **Never edit Confluence directly.** If something is wrong in Confluence, fix the markdown here and merge.
 
 ---
 
-## Admin setup (one-time, owner only)
+## Admin setup (repo owner, one-time)
 
-- In `.github/workflows/sync-confluence.yml`, set your Confluence domain, space key, and
-  parent page id, then add `CONFLUENCE_USER` and `CONFLUENCE_TOKEN` as repo Actions secrets.
-- Test the Confluence sync against a throwaway page before pointing it at the real space.
+1. In `.github/workflows/sync-confluence.yml`, replace the three placeholder values:
+   - `confluence-base-url`: your Atlassian domain (e.g. `https://infoblox.atlassian.net/wiki`)
+   - `space-key`: your Confluence space key
+   - `parent-page-id`: the numeric ID of the parent page under which docs should appear
+2. Add two GitHub Actions secrets (Settings → Secrets and variables → Actions):
+   - `CONFLUENCE_USER` — your Atlassian account email
+   - `CONFLUENCE_TOKEN` — an Atlassian API token from id.atlassian.com
+3. Test against a throwaway Confluence page before pointing at the real space.
+4. Update `product-context.md` with the correct Jira project key(s) once confirmed.
