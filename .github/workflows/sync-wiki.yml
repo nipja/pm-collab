@@ -80,16 +80,21 @@ jobs:
           mkdir -p research
           cp ../research/*.md research/ 2>/dev/null || true
 
-          # notes → sprint synthesis notes
+          # notes → only publish reviewed notes (drafts stay internal)
           mkdir -p notes
-          cp ../notes/*.md notes/ 2>/dev/null || true
+          for f in ../notes/*.md; do
+            [ -f "$f" ] || continue
+            if grep -q "status: reviewed" "$f" 2>/dev/null; then
+              cp "$f" notes/
+            fi
+          done
 
-          # prds → approved specs only (skip _TEMPLATE.md and *.brief.md)
+          # prds → active and approved specs (no briefs, no archive)
           mkdir -p prds
-          for f in ../prds/*.md; do
+          for f in ../prds/active/*.md ../prds/approved/*.md; do
+            [ -f "$f" ] || continue
             base=$(basename "$f")
-            [[ "$base" == "_TEMPLATE.md" ]] && continue
-            [[ "$base" == *.brief.md ]]     && continue
+            [[ "$base" == *.brief.md ]] && continue
             cp "$f" prds/
           done
 
