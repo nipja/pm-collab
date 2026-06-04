@@ -11,3 +11,9 @@ secrets/
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
+
+# Sprint state — local working memory, not committed
+.sprint-state/
+
+# WIP draft files — not ready to commit
+*.draft.md

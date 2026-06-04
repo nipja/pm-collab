@@ -11,8 +11,11 @@ an auto-published mirror — never instruct anyone to edit Confluence directly.
 |--------|-----------------|-----------------|
 | `knowledge-base/` | Small, permanent reference: product context, glossary, voice. Under 10 files. | Auto-load every session (see below) |
 | `research/` | Large, sourced deep-dive notes: strategy, architecture, COGS, planning process. RAG corpus. | On demand — read relevant files during synthesize-research or when answering deep questions |
-| `notes/` | Sprint synthesis notes generated per feature. Short-lived working artifacts. | Read when writing a spec for that feature |
-| `prds/` | Problem briefs (`*.brief.md`) and full PRDs. One file per feature. | Read when reviewing, ticketing, or continuing a sprint |
+| `notes/` | Sprint synthesis notes generated per feature. Publish to wiki only when `status: reviewed`. | Read when writing a spec for that feature |
+| `prds/active/` | In-flight briefs and PRDs (draft → in-review). | Read when working on or reviewing a feature |
+| `prds/approved/` | Approved PRDs not yet shipped. | Reference for ticketing and engineering |
+| `prds/archive/` | Shipped or cancelled PRDs. | Historical reference only |
+| `templates/` | `_PRD_TEMPLATE.md`, `_NOTE_TEMPLATE.md`. Never load into context automatically. | Use when creating new docs |
 
 ## Always load context
 - @knowledge-base/product-context.md
@@ -38,12 +41,14 @@ callout when notes disagree, and `[[wikilinks]]` to related notes. Never present
 unsourced claim as established fact.
 
 ## When writing or editing PRDs
-- Start from `prds/_TEMPLATE.md`. One feature per file, named `prds/<kebab-case>.md`.
+- Start from `templates/_PRD_TEMPLATE.md`. Save to `prds/active/<kebab-case>.md`.
+- Every PRD must have YAML frontmatter: status, feature, author, created, jira_epic, dependencies.
 - Use glossary terms exactly. Match the voice in `voice-and-style.md`.
 - Acceptance criteria use Given/When/Then. Prioritize with RICE. Always include success
   metrics and explicit non-goals.
 - Don't invent product facts. If something isn't in `knowledge-base/` or `research/`,
   write `TODO: confirm with <role>` rather than guessing.
+- PRD lifecycle: `prds/active/` → `prds/approved/` (after review + confirmation) → `prds/archive/` (after ship).
 
 ## Workflow rules
 - Propose changes as edits to markdown files, then suggest opening a PR. Never push to
